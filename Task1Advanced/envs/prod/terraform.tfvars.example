@@ -1,0 +1,20 @@
+yc_token       = "replace-me"
+cloud_id       = "replace-me"
+folder_id      = "replace-me"
+zone           = "ru-central1-a"
+vm_name        = "future20-prod-vm"
+platform_id    = "standard-v3"
+cores          = 4
+memory         = 8
+core_fraction  = 100
+disk_name      = "future20-prod-disk"
+disk_type      = "network-ssd"
+disk_size      = 50
+subnet_id      = "replace-me"
+nat            = true
+ssh_user       = "ubuntu"
+ssh_public_key = "ssh-ed25519 AAAA... user@example"
+labels = {
+  env     = "prod"
+  project = "future20"
+}
