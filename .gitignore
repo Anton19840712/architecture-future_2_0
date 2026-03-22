@@ -1,0 +1,15 @@
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.*
+*.tfplan
+*.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.idea/
+.vscode/
+!Task1Advanced/envs/dev/dev.tfvars
+!Task1Advanced/envs/stage/stage.tfvars
+!Task1Advanced/envs/prod/prod.tfvars

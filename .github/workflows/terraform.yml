@@ -1,0 +1,118 @@
+name: terraform
+
+on:
+  pull_request:
+    paths:
+      - "Task1Advanced/**"
+      - "Task2Advanced/**"
+      - ".github/workflows/terraform.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "Task1Advanced/**"
+      - "Task2Advanced/**"
+      - ".github/workflows/terraform.yml"
+  workflow_dispatch:
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Task2Advanced/terraform
+    env:
+      TF_VAR_yc_token: ${{ secrets.YC_TOKEN }}
+      TF_VAR_cloud_id: ${{ secrets.YC_CLOUD_ID }}
+      TF_VAR_folder_id: ${{ secrets.YC_FOLDER_ID }}
+      TF_VAR_subnet_id: ${{ secrets.TF_VAR_SUBNET_ID }}
+      TF_VAR_ssh_public_key: ${{ secrets.TF_VAR_SSH_PUBLIC_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Create backend config
+        run: |
+          cat > backend.hcl <<EOF
+          bucket                      = "${{ secrets.TF_BACKEND_BUCKET }}"
+          key                         = "${{ secrets.TF_BACKEND_KEY }}"
+          region                      = "${{ secrets.TF_BACKEND_REGION }}"
+          endpoint                    = "${{ secrets.TF_BACKEND_ENDPOINT }}"
+          access_key                  = "${{ secrets.TF_BACKEND_ACCESS_KEY }}"
+          secret_key                  = "${{ secrets.TF_BACKEND_SECRET_KEY }}"
+          skip_region_validation      = true
+          skip_credentials_validation = true
+          skip_requesting_account_id  = true
+          skip_metadata_api_check     = true
+          force_path_style            = true
+          EOF
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init
+        run: terraform init -backend-config=backend.hcl
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Terraform plan
+        run: terraform plan -out=tfplan
+
+      - name: Upload tfplan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: Task2Advanced/terraform/tfplan
+
+  apply:
+    if: github.ref == 'refs/heads/main'
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: Task2Advanced/terraform
+    env:
+      TF_VAR_yc_token: ${{ secrets.YC_TOKEN }}
+      TF_VAR_cloud_id: ${{ secrets.YC_CLOUD_ID }}
+      TF_VAR_folder_id: ${{ secrets.YC_FOLDER_ID }}
+      TF_VAR_subnet_id: ${{ secrets.TF_VAR_SUBNET_ID }}
+      TF_VAR_ssh_public_key: ${{ secrets.TF_VAR_SSH_PUBLIC_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Create backend config
+        run: |
+          cat > backend.hcl <<EOF
+          bucket                      = "${{ secrets.TF_BACKEND_BUCKET }}"
+          key                         = "${{ secrets.TF_BACKEND_KEY }}"
+          region                      = "${{ secrets.TF_BACKEND_REGION }}"
+          endpoint                    = "${{ secrets.TF_BACKEND_ENDPOINT }}"
+          access_key                  = "${{ secrets.TF_BACKEND_ACCESS_KEY }}"
+          secret_key                  = "${{ secrets.TF_BACKEND_SECRET_KEY }}"
+          skip_region_validation      = true
+          skip_credentials_validation = true
+          skip_requesting_account_id  = true
+          skip_metadata_api_check     = true
+          force_path_style            = true
+          EOF
+
+      - name: Terraform init
+        run: terraform init -backend-config=backend.hcl
+
+      - name: Download tfplan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+          path: Task2Advanced/terraform
+
+      - name: Terraform apply
+        run: terraform apply -auto-approve tfplan
